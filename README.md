@@ -171,7 +171,7 @@ sudo journalctl -u survcam-backend -f
 
 ## Step 3 - Hardware video encoding (VAAPI)
 
-Recording uses ffmpeg with `h264_vaapi` on `/dev/dri/renderD128`, and **falls back to software libx264 automatically** if hardware encoding fails to start. Hardware encoding is what lets a dual-core i3 record 12+ cameras: per-camera CPU load dropped from about 30% to about 10% in the author's build.
+Recording uses ffmpeg with `h264_vaapi` on `/dev/dri/renderD128`, and **falls back to software libx264 automatically** if hardware encoding fails to start. Hardware encoding is what lets a dual-core i3 record 12+ cameras: per-camera CPU load dropped from about 30% to about 10% in my build.
 
 1. Check that the GPU device exists: `ls /dev/dri/`.
 2. Install the VAAPI driver for your CPU generation:
