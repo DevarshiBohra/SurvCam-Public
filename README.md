@@ -95,7 +95,7 @@ See the [architecture diagram](architecture.md) for the service and network path
 ## Step 2 - Configure and start the backend
 
 ```bash
-git clone https://github.com/DevarshiBohra/SurvCam-Public.git
+git clone https://github.com/DevarshiBohra/SurvCam-Public.git SurvCam
 cd SurvCam
 cp .env.example .env
 nano .env
