@@ -81,7 +81,7 @@ class RecordingStorageMountValidationTests(unittest.TestCase):
         with patch.object(recording_storage, "_mounted_source", return_value=other_device):
             with self.assertRaisesRegex(
                 recording_storage.RecordingStorageUnavailable,
-                "Expected WD disk is not mounted",
+                "Expected recordings disk is not mounted",
             ):
                 recording_storage.ensure_recording_storage()
 
