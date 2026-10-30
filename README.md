@@ -44,20 +44,7 @@ The author's 12-camera build runs on a refurbished dual-core Intel i3 PC, with h
 
 ## How it fits together
 
-```
-                       Internet
-                          |
-                 Cloudflare (HTTPS)
-                          |  outbound tunnel (cloudflared)
- +------------------------+------------------------------------------+
- |  Home / office LAN                                                |
- |                                                                   |
- |  ESP32-CAM x N  --MJPEG :81-->  FastAPI backend (:8000)  <--- Android app
- |  (Wi-Fi / W5500 / bridge)         |   SQLite, OpenCV, ffmpeg      (LAN or HTTPS)
- |        |                          |
- |        +--MQTT heartbeats-->  Mosquitto (:1883)
- +-------------------------------------------------------------------+
-```
+See the [architecture diagram](architecture.md) for the service and network paths. GitHub renders the Mermaid diagram directly.
 
 - Cameras always talk to the server's **LAN IP** for MQTT and firmware downloads. Never point camera MQTT at the public hostname.
 - Cloudflare is only for the app and browser connection.
