@@ -266,16 +266,16 @@ Open the sketch and set:
 
 ### Wiring for the Ethernet (W5500) build
 
-| ESP32-CAM | W5500 Lite |
+| ESP32-CAM | W5500 |
 |-----------|-----------|
 | GPIO12 | MISO |
 | GPIO13 | MOSI |
 | GPIO14 | SCLK |
 | GPIO2 | SCS (CS) |
 | GND | GND |
-| 3.3 V (own regulator, ≥ 200 mA, common GND) | VCC |
+| 3.3 V / 5V (Depending upon the W5500 module) | VCC |
 
-Put 100 µF and 0.1 µF capacitors near the module. Optional button: GPIO15 to GND. Disconnect the module's 3.3 V while flashing.
+Optional button: GPIO15 to GND.
 
 ### Wiring for the bridge build
 
