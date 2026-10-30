@@ -744,7 +744,7 @@ python3 backend/fps_check.py "http://127.0.0.1:8000/live/cam001?access_token=$TO
 - Hardware encoding is tested on Intel VAAPI only. Other machines use the software fallback and need more CPU.
 - Camera firmware has no MQTT authentication, and the stream and setup ports are unencrypted HTTP on the LAN.
 - The recording schedule and retention are code constants.
-- Streams are MJPEG at modest frame rates (about 13-14 fps at best with the current firmware, which is enough for surveillance).
+- Streams are MJPEG at modest frame rates (about 10-12 fps at best with the current firmware, which is enough for surveillance).
 - Android is the only supported client.
 - Several project components were built for one site. Expect small rough edges when adapting them, and please open an issue or a pull request.
 
