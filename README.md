@@ -7,7 +7,7 @@ A self-hosted, multi-camera CCTV system built from cheap ESP32-CAM modules, an o
 - **App:** Native Android app (Kotlin) for live multi-camera view, recording playback, snapshots, camera control, and notifications.
 - **Remote access:** Cloudflare Tunnel publishes the API over HTTPS even behind CGNAT.
 
-The 12-camera build is deployed and runs on a refurbished dual-core Intel i3 PC, with hardware cost under ₹25,000 (~$260). Commercial systems of this size cost ₹50,000+ (~$530+).
+The 12-camera build is deployed and runs on a refurbished dual-core Intel i3 PC, with hardware cost under ₹25,000 (approximately $260). Commercial systems of this size cost ₹50,000+ (approximately $530+).
 
 ## Contents
 
