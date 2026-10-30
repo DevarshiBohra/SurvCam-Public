@@ -1,0 +1,65 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Settings"
+        android:textColor="@color/text_main"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/serverUrlInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/edit_text_bg"
+        android:hint="Server URL"
+        android:inputType="textUri"
+        android:singleLine="true"
+        android:textColor="@color/text_main"
+        android:textColorHint="@color/text_muted" />
+
+    <Button
+        android:id="@+id/saveButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/button_bg"
+        android:text="Save"
+        android:textAllCaps="false"
+        android:textColor="@color/text_main" />
+
+    <Button
+        android:id="@+id/testButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/button_secondary_bg"
+        android:text="Test Connection"
+        android:textAllCaps="false"
+        android:textColor="@color/text_main" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:textColor="@color/text_muted"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/logoutButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="28dp"
+        android:background="@drawable/button_secondary_bg"
+        android:text="Logout"
+        android:textAllCaps="false"
+        android:textColor="@color/offline" />
+</LinearLayout>

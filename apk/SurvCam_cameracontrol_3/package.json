@@ -1,0 +1,11 @@
+{
+  "name": "survcam-android",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "doctor": "node scripts/doctor.js",
+    "build:debug": "node scripts/build-debug.js",
+    "build:release": "node scripts/build-release.js"
+  }
+}

@@ -1,0 +1,28 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/card_bg_clickable"
+    android:layout_marginBottom="6dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="14dp">
+
+    <CheckBox
+        android:id="@+id/checkBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/timeText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:fontFamily="monospace"
+        android:textColor="@color/text_main"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+</LinearLayout>

@@ -1,0 +1,64 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SurvCam"
+        android:textColor="@color/text_main"
+        android:textSize="34sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Local CCTV viewer"
+        android:textColor="@color/text_muted"
+        android:textSize="16sp" />
+
+    <EditText
+        android:id="@+id/serverUrlInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:background="@drawable/edit_text_bg"
+        android:hint="Server URL, e.g. https://your-hostname"
+        android:inputType="textUri"
+        android:singleLine="true"
+        android:textColor="@color/text_main"
+        android:textColorHint="@color/text_muted" />
+
+    <Button
+        android:id="@+id/testButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/button_secondary_bg"
+        android:text="Test Connection"
+        android:textAllCaps="false"
+        android:textColor="@color/text_main" />
+
+    <Button
+        android:id="@+id/saveButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/button_bg"
+        android:text="Save and Continue"
+        android:textAllCaps="false"
+        android:textColor="@color/text_main" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="@color/text_muted"
+        android:textSize="14sp" />
+</LinearLayout>

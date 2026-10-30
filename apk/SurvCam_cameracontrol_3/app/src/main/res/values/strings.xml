@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SurvCam</string>
+    <string name="default_notification_channel_id">camera_status</string>
+</resources>

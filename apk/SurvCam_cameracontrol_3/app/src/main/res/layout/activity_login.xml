@@ -1,0 +1,127 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SurvCam"
+        android:textColor="@color/text_main"
+        android:textSize="34sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/serverUrlText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/text_muted"
+        android:textSize="14sp" />
+
+    <EditText
+        android:id="@+id/usernameInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:background="@drawable/edit_text_bg"
+        android:hint="Username"
+        android:inputType="text"
+        android:singleLine="true"
+        android:textColor="@color/text_main"
+        android:textColorHint="@color/text_muted" />
+
+    <EditText
+        android:id="@+id/passwordInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/edit_text_bg"
+        android:hint="Password"
+        android:inputType="textPassword"
+        android:singleLine="true"
+        android:textColor="@color/text_main"
+        android:textColorHint="@color/text_muted" />
+
+    <Button
+        android:id="@+id/loginButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/button_bg"
+        android:text="Login"
+        android:textAllCaps="false"
+        android:textColor="@color/text_main" />
+
+    <Button
+        android:id="@+id/changeServerButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/button_secondary_bg"
+        android:text="Change Server"
+        android:textAllCaps="false"
+        android:textColor="@color/text_main" />
+
+    <TextView
+        android:id="@+id/codeHintText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:text="Enter the 6-digit login code sent to Telegram"
+        android:textColor="@color/text_main"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+    <EditText
+        android:id="@+id/codeInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/edit_text_bg"
+        android:gravity="center"
+        android:hint="000000"
+        android:imeOptions="actionDone"
+        android:importantForAutofill="no"
+        android:inputType="number"
+        android:letterSpacing="0.3"
+        android:maxLength="6"
+        android:singleLine="true"
+        android:textColor="@color/text_main"
+        android:textColorHint="@color/text_muted"
+        android:textSize="24sp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/verifyButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/button_bg"
+        android:text="Verify"
+        android:textAllCaps="false"
+        android:textColor="@color/text_main"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/backButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/button_secondary_bg"
+        android:text="Back"
+        android:textAllCaps="false"
+        android:textColor="@color/text_main"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="@color/text_muted"
+        android:textSize="14sp" />
+</LinearLayout>

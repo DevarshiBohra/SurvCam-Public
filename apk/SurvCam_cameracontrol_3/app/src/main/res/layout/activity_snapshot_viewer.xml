@@ -1,0 +1,55 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000">
+
+    <!-- Full-screen zoomable image -->
+    <org.example.survcam.utils.ZoomableFrameLayout
+        android:id="@+id/zoomLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/snapshotImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter" />
+    </org.example.survcam.utils.ZoomableFrameLayout>
+
+    <ProgressBar
+        android:id="@+id/loadingBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="visible" />
+
+    <!-- Semi-transparent top bar overlaid on image -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#CC0B0F14"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/text_main"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/downloadButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:background="@drawable/button_bg"
+            android:text="Download"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main"
+            android:textSize="13sp" />
+    </LinearLayout>
+</FrameLayout>

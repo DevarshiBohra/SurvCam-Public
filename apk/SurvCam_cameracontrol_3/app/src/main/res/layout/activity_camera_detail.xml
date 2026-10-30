@@ -1,0 +1,173 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/nameText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_main"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/detailsText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/card_bg"
+            android:textColor="@color/text_muted"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/liveButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/button_bg"
+            android:text="Live View"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main" />
+
+        <Button
+            android:id="@+id/playbackButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="Recordings"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main" />
+
+        <Button
+            android:id="@+id/snapshotsButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="Motion Detection Snapshots"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main" />
+
+        <Button
+            android:id="@+id/rssiButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="RSSI"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main" />
+
+        <!-- Collapsible RSSI card: hidden until RSSI button is tapped -->
+        <TextView
+            android:id="@+id/rssiCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/card_bg"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="4dp"
+            android:padding="12dp"
+            android:textColor="@color/text_muted"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/tempButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="Temperature"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main" />
+
+        <TextView
+            android:id="@+id/tempCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/card_bg"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="4dp"
+            android:padding="12dp"
+            android:textColor="@color/text_muted"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/diagButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="Diagnostics"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main" />
+
+        <TextView
+            android:id="@+id/diagCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/card_bg"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="4dp"
+            android:padding="12dp"
+            android:textColor="@color/text_muted"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/eventsButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="Reboots &amp; Dropouts"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main" />
+
+        <TextView
+            android:id="@+id/eventsCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/card_bg"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="4dp"
+            android:padding="12dp"
+            android:textColor="@color/text_muted"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/controlButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="Camera Control"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/refreshButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="Refresh Status"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main" />
+    </LinearLayout>
+</ScrollView>

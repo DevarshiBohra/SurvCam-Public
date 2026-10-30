@@ -1,0 +1,80 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_main"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/text_muted"
+            android:textSize="13sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/snapshotRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="12dp"
+            android:layout_weight="1"
+            android:paddingBottom="72dp"
+            android:clipToPadding="false" />
+    </LinearLayout>
+
+    <!-- Selection / download bar — slides up from bottom when ≥1 item selected -->
+    <LinearLayout
+        android:id="@+id/downloadBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/surface_2"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/selectionCountText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/text_main"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/cancelSelectionButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/button_secondary_bg"
+            android:text="Cancel"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/downloadButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:background="@drawable/button_bg"
+            android:text="Download"
+            android:textAllCaps="false"
+            android:textColor="@color/text_main"
+            android:textSize="13sp" />
+    </LinearLayout>
+</FrameLayout>

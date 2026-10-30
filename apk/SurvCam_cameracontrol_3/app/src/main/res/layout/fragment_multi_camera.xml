@@ -1,0 +1,21 @@
+<org.example.survcam.utils.ZoomableFrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/zoomLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <WebView
+        android:id="@+id/gridWebView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/bg" />
+
+    <ProgressBar
+        android:id="@+id/loadingBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="visible" />
+
+</org.example.survcam.utils.ZoomableFrameLayout>

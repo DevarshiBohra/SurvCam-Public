@@ -1,0 +1,91 @@
+# =========================
+# Python
+# =========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# =========================
+# Secrets / Credentials
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# Firebase service account
+firebase-service-account.json
+*-service-account.json
+
+# Private keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# =========================
+# Databases
+# =========================
+
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# =========================
+# Logs
+# =========================
+
+logs/
+*.log
+
+# =========================
+# CCTV recordings
+# =========================
+
+recordings/
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.ts
+
+# =========================
+# Temporary / runtime files
+# =========================
+
+*.pid
+*.tmp
+*.temp
+
+# =========================
+# IDE / OS files
+# =========================
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local app/build and per-install files
+apk/SurvCam_cameracontrol_3/.gradle/
+apk/SurvCam_cameracontrol_3/**/build/
+apk/SurvCam_cameracontrol_3/app/google-services.json
+backend/ota_key.txt
+backend/firmware/*.bin
+*.apk
+
+# Local Android SDK configuration and signing credentials
+local.properties
+*.jks
+*.keystore
+.gradle/
+.kotlin/
+node_modules/

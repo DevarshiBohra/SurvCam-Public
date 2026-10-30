@@ -1,0 +1,15 @@
+<resources>
+    <color name="bg">#0B0F14</color>
+    <color name="surface">#151B22</color>
+    <color name="surface_2">#1D2630</color>
+    <color name="text_main">#F2F5F8</color>
+    <color name="text_muted">#A8B3BE</color>
+    <color name="accent">#4DA3FF</color>
+    <color name="online">#33D17A</color>
+    <color name="offline">#FF5C5C</color>
+
+    <!-- Pressed-state variants (used for button/card tap feedback) -->
+    <color name="accent_pressed">#3D82CC</color>
+    <color name="surface_pressed">#1C242D</color>
+    <color name="surface_2_pressed">#28323E</color>
+</resources>
