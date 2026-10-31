@@ -28,7 +28,9 @@ The 12-camera build is deployed and runs on a refurbished dual-core Intel i3 PC,
 15. [Troubleshooting](#troubleshooting)
 16. [Security notes](#security-notes)
 17. [Known limitations](#known-limitations)
-18. [Contributing and license](#contributing-and-license)
+18. [Snaps of live stream from Anrdoid app](#snaps-of-live-stream-from-android-app)
+19. [Snaps from Android app](#snaps-from-android-app)
+20. [Contributing and license](#contributing-and-license)
 
 ## Features
 
