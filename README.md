@@ -748,6 +748,18 @@ python3 backend/fps_check.py "http://127.0.0.1:8000/live/cam001?access_token=$TO
 - Android is the only supported client.
 - Several project components were built for one site. Expect small rough edges when adapting them, and please open an issue or a pull request.
 
+## Snaps from Android app
+
+<p align="center">
+  <img src="images/cam1-6(day).jpg" width="30% margin:5px;" />
+  <img src="images/cam7-12(day).jpg" width="30% margin:5px;" />
+</p>
+
+<p align="center">
+  <img src="images/cam1-6(night).jpg" width="30%" />
+  <img src="images/cam7-12(night).jpg" width="30%" />
+</p>
+
 ## Contributing and license
 
 Bug reports, setup problems, and pull requests are welcome. Please do not include real hostnames, IP addresses, tokens, or camera footage in issues.
