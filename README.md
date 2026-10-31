@@ -139,6 +139,39 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 From another computer on your LAN, open `http://YOUR_SERVER_LAN_IP:8000/health`. Press Ctrl+C when it responds.
 
+### Users and permissions
+
+| Action | Any signed-in user | Admin role | Camera-control user |
+|--------|:--:|:--:|:--:|
+| Live view, recordings, snapshots, notifications | yes | yes | yes |
+| Create users, add cameras, change camera status, start/stop recording, clean up recordings | no | yes | no |
+| Upload/list/delete firmware, OTA update, reboot, roll back a camera | no | no | yes |
+
+Camera control is **not a role**. An account has it only when its username is listed in `SURVCAM_CONTROL_USERS` in `.env` (comma-separated, exact and case-sensitive match):
+
+```conf
+SURVCAM_CONTROL_USERS=owner,technician
+```
+
+Restart the backend after changing it: `sudo systemctl restart survcam-backend`. Check an account with `curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/auth/capabilities`, which returns `{"camera_control": true}` for control users.
+
+Firmware control can run any code on your cameras, so keep the list short and use strong passwords.
+
+Create more accounts (as an admin, with a token from [Step 7](#step-7---register-cameras-on-the-server)):
+
+```bash
+curl -X POST http://127.0.0.1:8000/users \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"A-LONG-PASSWORD-12+","role":"user"}'    # role: "user" or "admin"
+
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/users            # list users
+curl -X PATCH http://127.0.0.1:8000/users/alice/active \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"is_active":false}'                                                    # disable an account
+```
+
+**Telegram note:** every login code is sent to the single chat in `TELEGRAM_CHAT_ID`. The people who sign in need access to that chat (for example a small Telegram group that contains the bot), or the owner must pass the codes on.
+
 ### Run it as a service
 
 Create `/etc/systemd/system/survcam-backend.service`. Replace `YOUR_UBUNTU_USER` and the paths with yours:
