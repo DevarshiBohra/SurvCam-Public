@@ -87,6 +87,9 @@ def init_telemetry_db():
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_telemetry_cam_id ON telemetry (camera_id, id)"
             )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_telemetry_cam_time ON telemetry (camera_id, recorded_at)"
+            )
             conn.commit()
         except BaseException:
             conn.close()
@@ -207,15 +210,20 @@ def _parse(ts):
     return datetime.strptime(ts[:19], TS_FMT)
 
 
-def list_events(camera_id, hours=168, gap_seconds=30, limit=100):
+def list_events_page(camera_id, hours=168, gap_seconds=30, limit=50, offset=0):
     """
-    Reboots and dropouts, newest first, found by walking the heartbeat history:
+    Reboots and dropouts, newest first, one page at a time.
+    Returns (events, has_more).
+
       - reboot : uptime went DOWN between two heartbeats (camera restarted)
       - dropout: heartbeats stopped for > gap_seconds but uptime kept counting
                  (camera stayed up, e.g. WiFi/MQTT blip - or the server/broker was down)
     'at' is when the camera was last seen before the gap; 'duration_s' is the gap.
     Check several cameras at the same time: if all show the same dropout, it was
     the server, broker or access point - not one camera.
+
+    The heartbeats are compared inside SQLite (LAG window function), so only the
+    few matching rows are returned to Python instead of every heartbeat of the period.
     """
     init_telemetry_db()
     since = (datetime.now() - timedelta(hours=hours)).strftime(TS_FMT)
@@ -223,53 +231,54 @@ def list_events(camera_id, hours=168, gap_seconds=30, limit=100):
     try:
         rows = conn.execute(
             """
-            SELECT recorded_at, uptime_ms, restart_cause, reset_reason_str,
-                   prev_disc_reason, fw_version
-            FROM telemetry
-            WHERE camera_id = ? AND recorded_at >= ?
-            ORDER BY id ASC
+            WITH w AS (
+                SELECT recorded_at, uptime_ms, restart_cause, reset_reason_str,
+                       prev_disc_reason, fw_version,
+                       LAG(recorded_at) OVER (ORDER BY recorded_at, id) AS prev_at,
+                       LAG(uptime_ms)   OVER (ORDER BY recorded_at, id) AS prev_up
+                FROM telemetry
+                WHERE camera_id = ? AND recorded_at >= ?
+            ),
+            g AS (
+                SELECT *,
+                       CAST(strftime('%s', recorded_at) AS INTEGER)
+                     - CAST(strftime('%s', prev_at) AS INTEGER) AS gap
+                FROM w
+                WHERE prev_at IS NOT NULL
+            )
+            SELECT * FROM g
+            WHERE (uptime_ms IS NOT NULL AND prev_up IS NOT NULL AND uptime_ms < prev_up)
+               OR gap > ?
+            ORDER BY recorded_at DESC
+            LIMIT ? OFFSET ?
             """,
-            (camera_id, since),
+            (camera_id, since, gap_seconds, limit + 1, offset),
         ).fetchall()
     finally:
         conn.close()
 
+    has_more = len(rows) > limit
     events = []
-    prev = None
-    for row in rows:
-        if prev is not None:
-            try:
-                gap = (_parse(row["recorded_at"]) - _parse(prev["recorded_at"])).total_seconds()
-            except ValueError:
-                gap = 0
-            up_now, up_prev = row["uptime_ms"], prev["uptime_ms"]
-            rebooted = up_now is not None and up_prev is not None and up_now < up_prev
+    for row in rows[:limit]:
+        rebooted = (
+            row["uptime_ms"] is not None
+            and row["prev_up"] is not None
+            and row["uptime_ms"] < row["prev_up"]
+        )
+        events.append(
+            {
+                "type": "reboot" if rebooted else "dropout",
+                "at": row["prev_at"],
+                "duration_s": int(row["gap"]),
+                "restart_cause": row["restart_cause"] if rebooted else None,
+                "reset_reason": row["reset_reason_str"] if rebooted else None,
+                "prev_disc_reason": row["prev_disc_reason"] if rebooted else None,
+                "fw_version": row["fw_version"],
+            }
+        )
+    return events, has_more
 
-            if rebooted:
-                events.append(
-                    {
-                        "type": "reboot",
-                        "at": prev["recorded_at"],
-                        "duration_s": int(gap),
-                        "restart_cause": row["restart_cause"],
-                        "reset_reason": row["reset_reason_str"],
-                        "prev_disc_reason": row["prev_disc_reason"],
-                        "fw_version": row["fw_version"],
-                    }
-                )
-            elif gap > gap_seconds:
-                events.append(
-                    {
-                        "type": "dropout",
-                        "at": prev["recorded_at"],
-                        "duration_s": int(gap),
-                        "restart_cause": None,
-                        "reset_reason": None,
-                        "prev_disc_reason": None,
-                        "fw_version": row["fw_version"],
-                    }
-                )
-        prev = row
 
-    events.reverse()
-    return events[:limit]
+def list_events(camera_id, hours=168, gap_seconds=30, limit=100):
+    """Newest events only (kept for older callers); see list_events_page."""
+    return list_events_page(camera_id, hours, gap_seconds, limit, 0)[0]

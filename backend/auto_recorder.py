@@ -82,7 +82,7 @@ def cleanup_old_recordings():
 
             if folder_date < cutoff:
                 shutil.rmtree(day_dir)
-                _delete_matching_snapshots(day_dir)
+                # snapshots are cleaned separately (snapshot_cleanup.py, 30 days)
                 deleted.append(str(day_dir))
                 print(f"Retention cleanup deleted: {day_dir}")
 
@@ -124,7 +124,7 @@ def cleanup_oldest_recording_day():
 
     for day_dir in date_to_dirs[oldest_date]:
         shutil.rmtree(day_dir)
-        _delete_matching_snapshots(day_dir)
+        # snapshots are cleaned separately (snapshot_cleanup.py, 30 days)
         deleted.append(str(day_dir))
         print(f"Emergency cleanup deleted: {day_dir}")
 

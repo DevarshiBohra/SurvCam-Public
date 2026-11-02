@@ -1,6 +1,11 @@
 import threading
 
-from database import cleanup_old_notification_history
+from database import (
+    cleanup_old_heartbeat_history,
+    cleanup_old_motion_events,
+    cleanup_old_notification_history,
+)
+from snapshot_cleanup import cleanup_old_snapshots
 
 CLEANUP_INTERVAL_SECONDS = 24 * 60 * 60
 
@@ -18,6 +23,27 @@ def _cleanup_loop():
                 print(f"Notification history cleanup deleted {deleted} old notification(s)")
         except Exception as exc:
             print(f"Notification history cleanup failed: {exc}")
+
+        try:
+            deleted = cleanup_old_heartbeat_history()
+            if deleted:
+                print(f"Heartbeat history cleanup deleted {deleted} old row(s)")
+        except Exception as exc:
+            print(f"Heartbeat history cleanup failed: {exc}")
+
+        try:
+            deleted = cleanup_old_motion_events()
+            if deleted:
+                print(f"Motion event cleanup deleted {deleted} old event(s)")
+        except Exception as exc:
+            print(f"Motion event cleanup failed: {exc}")
+
+        try:
+            deleted = cleanup_old_snapshots()
+            if deleted:
+                print(f"Snapshot cleanup deleted {len(deleted)} old day folder(s)")
+        except Exception as exc:
+            print(f"Snapshot cleanup failed: {exc}")
 
         _stop_event.wait(CLEANUP_INTERVAL_SECONDS)
 

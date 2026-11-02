@@ -48,7 +48,8 @@ data class CameraEvent(
 data class CameraEventsResponse(
     @SerializedName("camera_id") val cameraId: String,
     @SerializedName("hours")     val hours: Int,
-    @SerializedName("events")    val events: List<CameraEvent>
+    @SerializedName("events")    val events: List<CameraEvent>,
+    @SerializedName("has_more")  val hasMore: Boolean = false
 )
 
 data class FirmwareEntry(

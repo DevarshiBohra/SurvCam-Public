@@ -15,8 +15,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.example.survcam.R
+import org.example.survcam.api.ApiClient
 import org.example.survcam.storage.AppPreferences
 import org.example.survcam.utils.Constants
+import org.example.survcam.utils.FpsPoller
 
 class LiveViewActivity : AppCompatActivity() {
 
@@ -24,6 +26,8 @@ class LiveViewActivity : AppCompatActivity() {
     private lateinit var titleText: TextView
     private lateinit var liveWebView: WebView
     private lateinit var insetsController: WindowInsetsControllerCompat
+    private var fpsPoller: FpsPoller? = null
+    private var baseTitle = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +61,13 @@ class LiveViewActivity : AppCompatActivity() {
         val token      = prefs.getToken().orEmpty()
         val liveUrl    = "$serverUrl/live/$cameraId?access_token=$token"
 
-        titleText.text = "Live View: $cameraId"
+        baseTitle = "Live View: $cameraId"
+        titleText.text = baseTitle
+
+        // Live FPS in the title
+        fpsPoller = FpsPoller(ApiClient.create(this, serverUrl)) { fps ->
+            fps[cameraId]?.let { titleText.text = "$baseTitle ($it)" }
+        }
 
         liveWebView.apply {
             webViewClient = WebViewClient()
@@ -72,6 +82,16 @@ class LiveViewActivity : AppCompatActivity() {
         }
 
         applyOrientation(resources.configuration.orientation)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        fpsPoller?.start()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        fpsPoller?.stop()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

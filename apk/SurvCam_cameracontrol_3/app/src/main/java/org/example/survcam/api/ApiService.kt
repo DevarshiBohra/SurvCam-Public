@@ -21,6 +21,7 @@ import org.example.survcam.models.TelemetryResponse
 import org.example.survcam.models.TelemetryLatestResponse
 import org.example.survcam.models.CameraEventsResponse
 import org.example.survcam.models.CapabilitiesResponse
+import org.example.survcam.models.FpsResponse
 import org.example.survcam.models.LoginChallengeResponse
 import org.example.survcam.models.VerifyTwoFactorRequest
 import org.example.survcam.models.CommandResponse
@@ -47,6 +48,9 @@ interface ApiService {
 
     @GET("auth/capabilities")
     fun capabilities(): Call<CapabilitiesResponse>
+
+    @GET("streams/fps")
+    fun streamFps(): Call<FpsResponse>
 
     @GET("cameras")
     fun cameras(): Call<CameraResponse>
@@ -114,7 +118,9 @@ interface ApiService {
     @GET("cameras/{cameraId}/events")
     fun cameraEvents(
         @Path("cameraId") cameraId: String,
-        @Query("hours")   hours: Int = 168
+        @Query("hours")   hours: Int = 168,
+        @Query("limit")   limit: Int = 50,
+        @Query("offset")  offset: Int = 0
     ): Call<CameraEventsResponse>
 
     @GET("firmware")

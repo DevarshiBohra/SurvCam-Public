@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from recorder import start_recording, stop_recording, get_recording_status
 from auto_recorder import start_auto_recorder, stop_auto_recorder, get_auto_recording_status, cleanup_old_recordings
 from recording_scheduler import start_recording_scheduler, stop_recording_scheduler, get_scheduler_status
-from auth import hash_password, verify_password, create_access_token, get_current_user, require_admin
+from auth import CONTROL_USERS, hash_password, verify_password, create_access_token, get_current_user, require_admin
 from telegram_2fa import send_login_code
 from recordings import list_recording_days, list_recording_hours, get_hour_manifest
 from reachability_probe import start_reachability_probe, stop_reachability_probe
@@ -51,6 +51,7 @@ from telemetry import (
     latest_telemetry,
     latest_for_all_cameras,
     list_events,
+    list_events_page,
 )
 
 from firmware import (
@@ -76,6 +77,7 @@ from mqtt_client import start_mqtt_client, get_mqtt_status
 from stream import (
     MJPEG_MEDIA_TYPE,
     ensure_camera_stream,
+    get_all_fps,
     get_stream_status,
     mjpeg_frame_generator,
 )
@@ -95,14 +97,9 @@ app = FastAPI(
 
 mqtt_client = None
 
-# Only these accounts may update firmware and restart/roll back cameras.
-# Set SURVCAM_CONTROL_USERS to a comma-separated list of camera-control usernames
-# (comma-separated). The shared "admin" account is deliberately NOT in this list.
-CONTROL_USERS = {
-    name.strip()
-    for name in os.environ.get("SURVCAM_CONTROL_USERS", "").split(",")
-    if name.strip()
-}
+# Camera control (firmware upload, OTA update, reboot, rollback) is limited to the accounts
+# listed in SURVCAM_CONTROL_USERS (see auth.py). Those accounts are the owners of the system:
+# they can also do everything an admin can (create users, add cameras, start/stop recording, ...).
 
 
 def require_control_user(current_user=Depends(get_current_user)):
@@ -501,6 +498,12 @@ def stream_status(camera_id: str, current_user=Depends(get_current_user)):
     return get_stream_status(camera_id)
 
 
+@app.get("/streams/fps")
+def streams_fps(current_user=Depends(get_current_user)):
+    # Live frames per second of every camera the server is reading (any signed-in user).
+    return {"fps": get_all_fps()}
+
+
 # ---------------------------------------------------------------------------
 # Recordings
 # ---------------------------------------------------------------------------
@@ -647,12 +650,17 @@ def camera_telemetry_latest(camera_id: str, current_user=Depends(get_current_use
 
 
 @app.get("/cameras/{camera_id}/events")
-def camera_events(camera_id: str, hours: int = 168, current_user=Depends(get_current_user)):
+def camera_events(camera_id: str, hours: int = 168, limit: int = 100, offset: int = 0, current_user=Depends(get_current_user)):
     hours = max(1, min(hours, 24 * 14))
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+    events, has_more = list_events_page(camera_id, hours=hours, limit=limit, offset=offset)
     return {
         "camera_id": camera_id,
         "hours": hours,
-        "events": list_events(camera_id, hours=hours)
+        "events": events,
+        "has_more": has_more,
+        "next_offset": offset + len(events)
     }
 
 

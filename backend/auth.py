@@ -11,6 +11,14 @@ JWT_SECRET_KEY = os.environ.get("SURVCAM_JWT_SECRET", "").strip()
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = int(os.environ.get("SURVCAM_ACCESS_TOKEN_EXPIRE_DAYS", "30"))
 
+# Camera-control users (SURVCAM_CONTROL_USERS, comma-separated) are the owners of the system.
+# They can do everything an admin can, plus the camera-control actions (firmware, OTA, reboot, rollback).
+CONTROL_USERS = {
+    name.strip()
+    for name in os.environ.get("SURVCAM_CONTROL_USERS", "").split(",")
+    if name.strip()
+}
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -72,8 +80,13 @@ def get_current_user(
     return user
 
 
+def is_control_user(user) -> bool:
+    return user.get("username") in CONTROL_USERS
+
+
 def require_admin(current_user=Depends(get_current_user)):
-    if current_user.get("role") != "admin":
+    # Admin role OR camera-control user (the owner): both may manage users, cameras and recordings.
+    if current_user.get("role") != "admin" and not is_control_user(current_user):
         raise HTTPException(status_code=403, detail="Admin access required")
 
     return current_user

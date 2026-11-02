@@ -42,7 +42,7 @@ class RecordingCleanupTests(unittest.TestCase):
         (day_dir / "snapshot.jpg").write_bytes(b"snapshot")
         return day_dir
 
-    def test_emergency_cleanup_deletes_matching_snapshots(self):
+    def test_emergency_cleanup_keeps_snapshots(self):
         old_date = date.today() - timedelta(days=12)
         internal_camera = self.internal_root / "cam001"
         internal_camera.mkdir()
@@ -57,13 +57,13 @@ class RecordingCleanupTests(unittest.TestCase):
         result = auto_recorder.cleanup_oldest_recording_day()
 
         self.assertFalse(wd_day.exists())
-        self.assertFalse(old_snapshot_day.exists())
+        self.assertTrue(old_snapshot_day.exists())   # snapshots are cleaned separately (30 days)
         self.assertTrue(internal_day.exists())
         self.assertTrue(active_wd_day.exists())
         self.assertTrue(active_snapshot_day.exists())
         self.assertIn("WD", result)
 
-    def test_age_retention_deletes_matching_snapshots_only_for_expired_days(self):
+    def test_age_retention_keeps_snapshots(self):
         old_date = date.today() - timedelta(days=auto_recorder.RETENTION_DAYS + 1)
         recent_date = date.today()
         internal_camera = self.internal_root / "cam001"
@@ -81,7 +81,7 @@ class RecordingCleanupTests(unittest.TestCase):
 
         self.assertTrue(old_internal.exists())
         self.assertFalse(old_wd.exists())
-        self.assertFalse(old_snapshot_day.exists())
+        self.assertTrue(old_snapshot_day.exists())   # snapshots are cleaned separately (30 days)
         self.assertTrue(recent_wd.exists())
         self.assertTrue(recent_snapshot_day.exists())
         self.assertTrue(internal_snapshot_day.exists())

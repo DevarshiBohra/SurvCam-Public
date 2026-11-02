@@ -12,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import org.example.survcam.R
 import org.example.survcam.api.ApiClient
 import org.example.survcam.models.Camera
+import org.example.survcam.models.CameraEvent
 import org.example.survcam.models.CameraEventsResponse
 import org.example.survcam.models.CapabilitiesResponse
 import org.example.survcam.models.CommandResponse
@@ -38,10 +39,18 @@ class CameraDetailActivity : BaseActivity() {
 
     private lateinit var sections: List<LiveSection>
 
+    // Reboots & Dropouts paging
+    private val eventsList = mutableListOf<CameraEvent>()
+    private var eventsHasMore = false
+    private var eventsBusy = false
+    private lateinit var eventsCard: TextView
+    private lateinit var eventsMoreButton: Button
+
     companion object {
         private const val LIVE_INTERVAL_MS   = 5_000L    // RSSI / temperature / diagnostics
         private const val EVENTS_INTERVAL_MS = 30_000L   // reboot & dropout history
         private const val EVENTS_HOURS       = 168       // 7 days
+        private const val EVENTS_PAGE_SIZE   = 50        // events per "Load more" page
     }
 
     /**
@@ -54,7 +63,8 @@ class CameraDetailActivity : BaseActivity() {
         private val label: String,
         private val loadingText: String,
         private val intervalMs: Long,
-        private val loader: (TextView) -> Unit
+        private val loader: (TextView) -> Unit,
+        private val onClose: (() -> Unit)? = null
     ) {
         private val handler = Handler(Looper.getMainLooper())
         private val runnable = object : Runnable {
@@ -70,6 +80,7 @@ class CameraDetailActivity : BaseActivity() {
                     card.visibility = View.GONE
                     button.text = label
                     handler.removeCallbacks(runnable)
+                    onClose?.invoke()
                 } else {
                     card.visibility = View.VISIBLE
                     card.text = loadingText
@@ -144,9 +155,14 @@ class CameraDetailActivity : BaseActivity() {
             ),
             LiveSection(
                 findViewById(R.id.eventsButton), findViewById(R.id.eventsCard),
-                "Reboots & Dropouts", "Loading history…", EVENTS_INTERVAL_MS, this::loadEvents
+                "Reboots & Dropouts", "Loading history…", EVENTS_INTERVAL_MS, this::loadEvents,
+                onClose = { resetEvents() }
             )
         )
+
+        eventsCard = findViewById(R.id.eventsCard)
+        eventsMoreButton = findViewById(R.id.eventsMoreButton)
+        eventsMoreButton.setOnClickListener { loadMoreEvents() }
 
         // Camera Control is only for accounts the server allows (not decided by the app).
         val controlButton = findViewById<Button>(R.id.controlButton)
@@ -315,30 +331,105 @@ class CameraDetailActivity : BaseActivity() {
     // ── Reboots & dropouts ─────────────────────────────────────────────────────
 
     private fun loadEvents(card: TextView) {
-        fetch(card, "history", "No data.", api().cameraEvents(cameraId, EVENTS_HOURS)) { resp: CameraEventsResponse ->
-            val days = resp.hours / 24
-            if (resp.events.isEmpty()) {
-                return@fetch "No reboots or dropouts in the last $days days."
-            }
+        // Once older pages have been loaded, the 30 s refresh must not wipe them.
+        if (eventsList.size > EVENTS_PAGE_SIZE || eventsBusy) return
+        eventsBusy = true
 
-            val reboots  = resp.events.count { it.type == "reboot" }
-            val dropouts = resp.events.size - reboots
-
-            val sb = StringBuilder()
-            sb.appendLine("Last $days days: $reboots reboots, $dropouts dropouts")
-            sb.appendLine("─".repeat(34))
-            for (e in resp.events) {
-                val whenText = if (e.at.length >= 16) e.at.substring(5, 16) else e.at
-                val what = if (e.type == "reboot") rebootLabel(e.restartCause, e.resetReason) else "Dropout"
-                val dur  = e.durationS?.let { formatDuration(it) } ?: "—"
-                sb.appendLine("%-11s %-10s %s".format(whenText, what, dur))
-                if (e.type == "reboot" && (e.prevDiscReason ?: 0) != 0) {
-                    sb.appendLine("   ↳ before: ${discName(e.prevDiscReason)}")
+        api().cameraEvents(cameraId, EVENTS_HOURS, EVENTS_PAGE_SIZE, 0)
+            .enqueue(object : Callback<CameraEventsResponse> {
+                override fun onResponse(call: Call<CameraEventsResponse>, response: Response<CameraEventsResponse>) {
+                    eventsBusy = false
+                    if (!response.isSuccessful) {
+                        card.text = "Error ${response.code()}: could not fetch history"
+                        return
+                    }
+                    val body = response.body()
+                    if (body == null) {
+                        card.text = "No data."
+                        return
+                    }
+                    eventsList.clear()
+                    eventsList.addAll(body.events)
+                    eventsHasMore = body.hasMore
+                    card.text = eventsText(body.hours)
+                    updateEventsButton()
                 }
+
+                override fun onFailure(call: Call<CameraEventsResponse>, t: Throwable) {
+                    eventsBusy = false
+                    card.text = "Could not reach server: ${t.localizedMessage ?: "network error"}"
+                }
+            })
+    }
+
+    /** "Load more": fetches the next page of older events and appends it. */
+    private fun loadMoreEvents() {
+        if (eventsBusy) return
+        eventsBusy = true
+        eventsMoreButton.isEnabled = false
+        eventsMoreButton.text = "Loading…"
+
+        api().cameraEvents(cameraId, EVENTS_HOURS, EVENTS_PAGE_SIZE, eventsList.size)
+            .enqueue(object : Callback<CameraEventsResponse> {
+                override fun onResponse(call: Call<CameraEventsResponse>, response: Response<CameraEventsResponse>) {
+                    eventsBusy = false
+                    eventsMoreButton.isEnabled = true
+                    val body = response.body()
+                    if (!response.isSuccessful || body == null) {
+                        eventsMoreButton.text = "Load more (failed, tap to retry)"
+                        return
+                    }
+                    eventsList.addAll(body.events)
+                    eventsHasMore = body.hasMore
+                    eventsCard.text = eventsText(body.hours)
+                    updateEventsButton()
+                }
+
+                override fun onFailure(call: Call<CameraEventsResponse>, t: Throwable) {
+                    eventsBusy = false
+                    eventsMoreButton.isEnabled = true
+                    eventsMoreButton.text = "Load more (no connection, tap to retry)"
+                }
+            })
+    }
+
+    private fun updateEventsButton() {
+        val show = eventsCard.visibility == View.VISIBLE && eventsHasMore && eventsList.isNotEmpty()
+        eventsMoreButton.visibility = if (show) View.VISIBLE else View.GONE
+        eventsMoreButton.isEnabled = true
+        eventsMoreButton.text = "Load more"
+    }
+
+    /** Called when the Reboots & Dropouts section is closed: the next open starts from the newest page. */
+    private fun resetEvents() {
+        eventsList.clear()
+        eventsHasMore = false
+        eventsMoreButton.visibility = View.GONE
+    }
+
+    private fun eventsText(hours: Int): String {
+        val days = hours / 24
+        if (eventsList.isEmpty()) return "No reboots or dropouts in the last $days days."
+
+        val reboots  = eventsList.count { it.type == "reboot" }
+        val dropouts = eventsList.size - reboots
+        val more     = if (eventsHasMore) "+" else ""
+
+        val sb = StringBuilder()
+        sb.appendLine("Last $days days: ${eventsList.size}$more events ($reboots reboots, $dropouts dropouts)")
+        sb.appendLine("─".repeat(34))
+        for (e in eventsList) {
+            val whenText = if (e.at.length >= 16) e.at.substring(5, 16) else e.at
+            val what = if (e.type == "reboot") rebootLabel(e.restartCause, e.resetReason) else "Dropout"
+            val dur  = e.durationS?.let { formatDuration(it) } ?: "—"
+            sb.appendLine("%-11s %-10s %s".format(whenText, what, dur))
+            if (e.type == "reboot" && (e.prevDiscReason ?: 0) != 0) {
+                sb.appendLine("   ↳ before: ${discName(e.prevDiscReason)}")
             }
-            sb.append("Same time on several cameras = server, broker or AP.")
-            sb.toString()
         }
+        if (!eventsHasMore) sb.appendLine("End of history.")
+        sb.append("Same time on several cameras = server, broker or AP.")
+        return sb.toString()
     }
 
     // ── Camera control (admin): update firmware, restart, roll back ────────────

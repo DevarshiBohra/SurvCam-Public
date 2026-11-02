@@ -39,6 +39,16 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
 
 
 def on_message(client, userdata, msg):
+    # Whatever goes wrong while handling one message (for example "database is locked")
+    # must not escape: paho would stop its network thread and no heartbeat would be
+    # processed again until the backend is restarted.
+    try:
+        _handle_message(client, userdata, msg)
+    except Exception as exc:
+        print(f"MQTT message handling failed ({msg.topic}): {exc}")
+
+
+def _handle_message(client, userdata, msg):
     topic = msg.topic
     payload_text = msg.payload.decode("utf-8", errors="replace")
 
@@ -48,7 +58,7 @@ def on_message(client, userdata, msg):
         "time": datetime.now().isoformat(),
     }
 
-    print(f"MQTT message: {topic} -> {payload_text}")
+    print(f"MQTT message: {topic}")
 
     parts = topic.split("/")
 

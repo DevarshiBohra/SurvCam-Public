@@ -1,6 +1,7 @@
 import asyncio
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Optional
 from urllib.error import HTTPError, URLError
@@ -25,6 +26,7 @@ class CameraStreamState:
     last_error: Optional[str] = None
     last_frame_time: Optional[float] = None
     source_url: Optional[str] = None
+    frame_times: deque = field(default_factory=lambda: deque(maxlen=240))
 
 
 _streams = {}
@@ -105,6 +107,7 @@ def _read_mjpeg_stream(state: CameraStreamState):
                         state.latest_frame = frame
                         state.frame_seq += 1
                         state.last_frame_time = time.time()
+                        state.frame_times.append(time.monotonic())
                         state.condition.notify_all()
 
         except (HTTPError, URLError, TimeoutError, RuntimeError, OSError) as exc:
@@ -175,6 +178,28 @@ async def mjpeg_frame_generator(camera_id: str):
             if time.monotonic() - last_new_frame > idle_timeout:
                 return
             await asyncio.sleep(0.02)
+
+
+FPS_WINDOW_SECONDS = 2.0
+
+
+def get_fps(camera_id: str):
+    """Frames per second the camera delivered over the last FPS_WINDOW_SECONDS (None if no reader yet)."""
+    state = _streams.get(camera_id)
+
+    if state is None:
+        return None
+
+    cutoff = time.monotonic() - FPS_WINDOW_SECONDS
+
+    with state.condition:
+        recent = sum(1 for t in state.frame_times if t >= cutoff)
+
+    return round(recent / FPS_WINDOW_SECONDS)
+
+
+def get_all_fps():
+    return {camera_id: get_fps(camera_id) for camera_id in list(_streams)}
 
 
 def get_latest_frame_bytes(camera_id: str):

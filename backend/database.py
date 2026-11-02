@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import sqlite3
 from pathlib import Path
+import time
 from datetime import datetime, timedelta
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -10,12 +11,13 @@ DB_PATH = Path(os.environ.get("SURVCAM_DATABASE_PATH", Path(__file__).resolve().
 HEARTBEAT_RETENTION_DAYS = 7
 PROBE_RETENTION_DAYS = 7
 NOTIFICATION_HISTORY_RETENTION_DAYS = 30
+MOTION_EVENT_RETENTION_DAYS = 30
 
 
 def get_connection():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.row_factory = sqlite3.Row
@@ -389,18 +391,29 @@ def list_rssi_history(camera_id: str, limit: int = 20):
     return rows
 
 
-def cleanup_old_heartbeat_history():
+def cleanup_old_heartbeat_history(batch_size: int = 20000):
+    """Delete heartbeat rows older than HEARTBEAT_RETENTION_DAYS, in small batches so the
+    database is never locked for long (a first run can have millions of old rows to remove)."""
     cutoff = (datetime.now() - timedelta(days=HEARTBEAT_RETENTION_DAYS)).isoformat()
+    total = 0
 
-    conn = get_connection()
-    cur = conn.cursor()
+    while True:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM heartbeat_history WHERE id IN "
+            "(SELECT id FROM heartbeat_history WHERE recorded_at < ? LIMIT ?)",
+            (cutoff, batch_size),
+        )
+        deleted = cur.rowcount
+        conn.commit()
+        conn.close()
+        total += deleted
 
-    cur.execute("DELETE FROM heartbeat_history WHERE recorded_at < ?", (cutoff,))
-    deleted = cur.rowcount
+        if deleted < batch_size:
+            return total
 
-    conn.commit()
-    conn.close()
-    return deleted
+        time.sleep(0.2)   # let heartbeats and API calls in between batches
 
 
 def add_reachability_probe(
@@ -720,6 +733,20 @@ def list_motion_events(camera_id=None, limit=100):
     conn.close()
 
     return [dict(row) for row in rows]
+
+
+def cleanup_old_motion_events():
+    cutoff = (datetime.now() - timedelta(days=MOTION_EVENT_RETENTION_DAYS)).isoformat()
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM motion_events WHERE created_at < ?", (cutoff,))
+    deleted = cur.rowcount
+
+    conn.commit()
+    conn.close()
+    return deleted
 
 
 def add_user(username: str, password_hash: str, role: str = "user"):

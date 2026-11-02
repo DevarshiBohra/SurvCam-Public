@@ -12,8 +12,11 @@ import android.webkit.WebViewClient
 import android.widget.ProgressBar
 import androidx.fragment.app.Fragment
 import org.example.survcam.R
+import org.example.survcam.api.ApiClient
 import org.example.survcam.models.Camera
 import org.example.survcam.storage.AppPreferences
+import org.example.survcam.utils.FpsPoller
+import org.json.JSONObject
 
 /**
  * Displays a single "page" of up to 6 live MJPEG camera feeds in one WebView.
@@ -24,6 +27,7 @@ class MultiCameraFragment : Fragment() {
     private lateinit var webView: WebView
     private lateinit var loadingBar: ProgressBar
     private var cameras: List<Camera> = emptyList()
+    private var fpsPoller: FpsPoller? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +73,15 @@ class MultiCameraFragment : Fragment() {
             setSupportZoom(false)
         }
 
+        // Live FPS next to each camera name
+        fpsPoller = FpsPoller(
+            ApiClient.create(requireContext(), AppPreferences(requireContext()).getServerUrl())
+        ) { fps ->
+            if (::webView.isInitialized) {
+                webView.evaluateJavascript("if (window.setFps) setFps(${JSONObject(fps)})", null)
+            }
+        }
+
         loadGrid(resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
     }
 
@@ -86,10 +99,12 @@ class MultiCameraFragment : Fragment() {
             webView.onResume()
             webView.resumeTimers()   // re-start MJPEG network requests
         }
+        fpsPoller?.start()
     }
 
     override fun onPause() {
         super.onPause()
+        fpsPoller?.stop()
         if (::webView.isInitialized) {
             webView.pauseTimers()    // stop MJPEG network requests for off-screen pages
             webView.onPause()
@@ -98,6 +113,7 @@ class MultiCameraFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        fpsPoller?.stop()
         webView.destroy()
     }
 
@@ -148,9 +164,11 @@ class MultiCameraFragment : Fragment() {
                 val url    = "$serverUrl/live/${cam.cameraId}?access_token=$token"
                 val label  = (cam.name ?: cam.cameraId)
                     .replace("&", "&amp;").replace("<", "&lt;").replace("\"", "&quot;")
+                val safeId = cam.cameraId
+                    .replace("&", "&amp;").replace("<", "&lt;").replace("\"", "&quot;")
                 """<div class="c" style="grid-area:$letter">""" +
                 """<img src="$url" alt="">""" +
-                """<span class="l">$label</span></div>"""
+                """<span class="l" id="l-$safeId" data-n="$label">$label</span></div>"""
             }.joinToString("")
 
             val html = """
@@ -176,7 +194,15 @@ class MultiCameraFragment : Fragment() {
                   background:rgba(0,0,0,.60);padding:2px 7px;border-radius:3px;
                   pointer-events:none;white-space:nowrap;
                 }
-                </style></head>
+                </style>
+                <script>
+                function setFps(m){
+                  for (var id in m){
+                    var e = document.getElementById('l-' + id);
+                    if (e) e.textContent = e.getAttribute('data-n') + ' (' + m[id] + ')';
+                  }
+                }
+                </script></head>
                 <body><div class="grid">$cells</div></body></html>
             """.trimIndent()
 

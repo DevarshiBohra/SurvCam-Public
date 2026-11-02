@@ -24,25 +24,28 @@ The 12-camera build is deployed and runs on a refurbished dual-core Intel i3 PC,
 11. [Step 8 - Build the Android app](#step-8---build-the-android-app)
 12. [Step 9 - Remote access with Cloudflare Tunnel](#step-9---remote-access-with-cloudflare-tunnel)
 13. [Step 10 - Self-healing (recommended)](#step-10---self-healing-recommended)
-14. [Command reference](#command-reference)
-15. [Troubleshooting](#troubleshooting)
-16. [Security notes](#security-notes)
-17. [Known limitations](#known-limitations)
-18. [Snaps of live stream from Anrdoid app](#snaps-of-live-stream-from-android-app)
-19. [Snaps of Android app](#snaps-of-android-app)
-20. [Contributing and license](#contributing-and-license)
+14. [Upgrading an existing install](#upgrading-an-existing-install)
+15. [Command reference](#command-reference)
+16. [Troubleshooting](#troubleshooting)
+17. [Security notes](#security-notes)
+18. [Known limitations](#known-limitations)
+19. [Snaps of live stream from Android app](#snaps-of-live-stream-from-android-app)
+20. [Snaps of Android app](#snaps-of-android-app)
+21. [Contributing and license](#contributing-and-license)
 
 ## Features
 
 - Live view of many cameras at once (multi-view grid in the app). Cameras serve one stream each, and the server fans it out to any number of viewers.
 - 24/7 recording during configurable hours, motion-triggered recording otherwise, with cross-camera triggering.
 - Hardware H.264 encoding through Intel VAAPI, with an automatic software (libx264) fallback.
+- Live frames per second of every camera, shown next to its name in the multi-view and the single live view (visible to every signed-in user).
 - Playback by day and hour, plus snapshot browsing.
+- Reboots & Dropouts history per camera, loaded fast and page by page with a **Load more** button.
 - JWT authentication with a mandatory Telegram two-factor code at login.
 - MQTT heartbeats with Last Will detection, plus independent TCP reachability probes, to tell camera, network, and broker failures apart.
 - Push notifications (optional, via Firebase Cloud Messaging) for offline cameras, recoveries, and after-hours motion.
 - Remote firmware updates over MQTT using signed commands, with automatic rollback if the new firmware does not become healthy.
-- Disk management: age-based cleanup plus a free-space floor.
+- Disk and database housekeeping: every kind of stored data has a retention period and is cleaned up automatically (see the [retention table](#step-5---storage-retention-and-schedule)), plus a free-space floor for recordings.
 
 ## How it fits together
 
@@ -117,7 +120,7 @@ Edit `.env` and replace every `REPLACE_...`, `YOUR_...`, or blank value that app
 | `SURVCAM_JWT_SECRET` | `openssl rand -hex 32`. Never reuse the OTA key. |
 | `SURVCAM_OTA_KEY` | A different value from `openssl rand -hex 24`. You enter this same key in the firmware and on each camera. |
 | `SURVCAM_FIRMWARE_BASE_URL` | `http://YOUR_SERVER_LAN_IP:8000` (cameras download updates from this LAN address). |
-| `SURVCAM_CONTROL_USERS` | Comma-separated usernames allowed to upload firmware and reboot, update, or roll back cameras. |
+| `SURVCAM_CONTROL_USERS` | Comma-separated usernames of the **owner** account(s). Owners can do everything an admin can, plus upload firmware and reboot, update, or roll back cameras. |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | See below. Login does not work without them. |
 | `SURVCAM_FIREBASE_CREDENTIALS` | Optional. Path to your own Firebase service-account JSON. |
 | Storage variables | See [Step 5](#step-5---storage-retention-and-schedule). |
@@ -141,23 +144,25 @@ From another computer on your LAN, open `http://YOUR_SERVER_LAN_IP:8000/health`.
 
 ### Users and permissions
 
-| Action | Any signed-in user | Admin role | Camera-control user |
+| Action | Any signed-in user | Admin role | Owner (camera-control user) |
 |--------|:--:|:--:|:--:|
-| Live view, recordings, snapshots, notifications | yes | yes | yes |
-| Create users, add cameras, change camera status, start/stop recording, clean up recordings | no | yes | no |
+| Live view (with live FPS), recordings, snapshots, notifications, camera history | yes | yes | yes |
+| Create users, add cameras, change camera status, start/stop recording, clean up recordings | no | yes | yes |
 | Upload/list/delete firmware, OTA update, reboot, roll back a camera | no | no | yes |
 
-Camera control is **not a role**. An account has it only when its username is listed in `SURVCAM_CONTROL_USERS` in `.env` (comma-separated, exact and case-sensitive match):
+The **owner** is the topmost account, normally the person who built the system. An owner can do everything an admin can, plus the special camera-control actions. The **admin role** is for trusted helpers who may manage users, cameras and recordings but must not touch camera firmware.
+
+Being an owner is **not a role**. An account is an owner only when its username is listed in `SURVCAM_CONTROL_USERS` in `.env` (comma-separated, exact and case-sensitive match). The account does not need the admin role:
 
 ```conf
 SURVCAM_CONTROL_USERS=owner,technician
 ```
 
-Restart the backend after changing it: `sudo systemctl restart survcam-backend`. Check an account with `curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/auth/capabilities`, which returns `{"camera_control": true}` for control users.
+Restart the backend after changing it: `sudo systemctl restart survcam-backend`. Check an account with `curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/auth/capabilities`, which returns `{"camera_control": true}` for owners.
 
-Firmware control can run any code on your cameras, so keep the list short and use strong passwords.
+Firmware control can run any code on your cameras, so keep the owner list short and use strong passwords.
 
-Create more accounts (as an admin, with a token from [Step 7](#step-7---register-cameras-on-the-server)):
+Create more accounts (as an owner or admin, with a token from [Step 7](#step-7---register-cameras-on-the-server)):
 
 ```bash
 curl -X POST http://127.0.0.1:8000/users \
@@ -261,7 +266,21 @@ SURVCAM_SNAPSHOT_ROOT=/mnt/survcam-recordings/thumbnails
 
 Find the UUID with `lsblk -f`. When a UUID is set, the backend refuses to record to the wrong disk if the drive is missing.
 
-**Retention.** `backend/auto_recorder.py` deletes recordings older than `RETENTION_DAYS` (default 9) and keeps `MIN_FREE_BYTES` (default 30 GB) free by deleting the oldest recordings first.
+**Retention.** `backend/auto_recorder.py` deletes recordings older than `RETENTION_DAYS` (default 9) and keeps `MIN_FREE_BYTES` (default 30 GB) free by deleting the oldest recordings first. Recordings no longer take the motion snapshots with them: snapshots are cleaned separately.
+
+Everything the system stores is cleaned up automatically, so nothing grows forever:
+
+| Data | Kept for | Cleaned by |
+|------|----------|-----------|
+| Recordings | 9 days, or less when free space drops below the floor | `auto_recorder.py` |
+| Motion snapshots | 30 days (today plus the previous 29) | `snapshot_cleanup.py`, daily |
+| Motion events (database) | 30 days | `database.py`, daily |
+| Heartbeat history (`survcam.db`) | 7 days | `database.py`, daily, in small batches |
+| Telemetry (`telemetry.db`) | 14 days | `telemetry.py`, every 6 hours |
+| Notification history | 30 days | `database.py`, daily |
+| Reachability probes | 7 days | probe loop |
+
+The daily housekeeping runs from `backend/notification_cleanup.py`, once at startup and then every 24 hours. Retention periods are constants at the top of each file (`SNAPSHOT_RETENTION_DAYS`, `MOTION_EVENT_RETENTION_DAYS`, `HEARTBEAT_RETENTION_DAYS`, ...). The database files keep their size after old rows are deleted, because SQLite reuses the freed space; run `VACUUM` with the backend stopped if you want a smaller file.
 
 **Schedule.** Defaults are:
 
@@ -587,6 +606,58 @@ Also consider these, depending on your hardware:
 - **Hardware watchdog:** `sudo apt install watchdog` plus the right kernel module for your board can hard-reset a frozen machine. Read your board's documentation and test it, because a wrong configuration can cause reboot loops.
 - **Camera side:** the firmware already reboots a camera after prolonged Wi-Fi or MQTT loss and has a task watchdog.
 
+## Upgrading an existing install
+
+New installs need none of this. If you installed an earlier version:
+
+1. Copy the new files over your install (or `git pull`), then run `pip install -r requirements.txt` inside the backend virtual environment.
+2. **Optional but recommended, one time:** create the new telemetry index now, so the restart does not wait for it on a large database:
+
+   ```bash
+   sqlite3 "$SURVCAM_DIR/backend/telemetry.db" "CREATE INDEX IF NOT EXISTS idx_telemetry_cam_time ON telemetry (camera_id, recorded_at);"
+   ```
+
+3. **Check the heartbeat table.** Older versions defined the 7-day cleanup but never ran it, so the table can hold millions of old rows:
+
+   ```bash
+   sqlite3 "$DB" "SELECT COUNT(*), MIN(recorded_at) FROM heartbeat_history;"
+   ```
+
+   A healthy table holds about 7 days of heartbeats (roughly 17,000 rows per camera per day). If it holds far more, rebuild it once with the backend **stopped**; this takes seconds, while deleting millions of rows through the running server would lock the database for a long time. Take a copy of the small, important tables first (`.dump users cameras device_tokens mute_state`):
+
+   ```bash
+   sudo systemctl stop survcam-backend
+   sqlite3 "$DB" <<'SQL'
+   PRAGMA busy_timeout=30000;
+   BEGIN IMMEDIATE;
+   DROP INDEX IF EXISTS idx_heartbeat_history_camera_time;
+   ALTER TABLE heartbeat_history RENAME TO heartbeat_history_old;
+   CREATE TABLE heartbeat_history (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       camera_id TEXT NOT NULL,
+       status TEXT NOT NULL,
+       ip_address TEXT,
+       rssi INTEGER,
+       uptime_ms INTEGER,
+       fw_version TEXT,
+       recorded_at TEXT NOT NULL
+   );
+   INSERT INTO heartbeat_history
+       SELECT * FROM heartbeat_history_old
+       WHERE recorded_at >= strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime', '-7 days');
+   CREATE INDEX idx_heartbeat_history_camera_time ON heartbeat_history (camera_id, recorded_at);
+   DROP TABLE heartbeat_history_old;
+   COMMIT;
+   PRAGMA wal_checkpoint(TRUNCATE);
+   SELECT COUNT(*), MIN(recorded_at) FROM heartbeat_history;
+   SQL
+   sudo systemctl start survcam-backend
+   ```
+
+4. Restart the backend (`sudo systemctl restart survcam-backend`). The first start also deletes motion snapshots older than 30 days and motion events older than 30 days. Check the log for `Snapshot cleanup deleted` and `Motion event cleanup deleted`.
+5. Rebuild and reinstall the Android app to get live FPS and the paged **Reboots & Dropouts** history.
+6. The `SURVCAM_CONTROL_USERS` accounts are now owners with the full admin permissions. Nothing to change unless you want to add or remove owners.
+
 ## Command reference
 
 Commands for everyday administration. Run them on the server. Set these once per shell:
@@ -635,7 +706,7 @@ watch -n 5 "sqlite3 $DB \"SELECT recorded_at, rssi FROM heartbeat_history WHERE 
 
 ### Firmware on the server
 
-The user must be listed in `SURVCAM_CONTROL_USERS`.
+The user must be an owner (listed in `SURVCAM_CONTROL_USERS`).
 
 ```bash
 # Upload a compiled .bin (use the matching Wi-Fi / Ethernet / bridge build)
@@ -742,6 +813,27 @@ speedtest() {
 }
 ```
 
+### Live FPS of every camera
+
+Any signed-in user can read the frames per second each camera delivered to the server over the last 2 seconds. The app shows the same numbers next to the camera names.
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/streams/fps
+# {"fps":{"cam001":10,"cam002":9, ...}}  (a camera that stopped sending shows 0)
+```
+
+### Housekeeping checks
+
+```bash
+# Row counts and oldest entries (should stay within the retention periods above)
+sqlite3 "$DB" "SELECT COUNT(*), MIN(recorded_at) FROM heartbeat_history;"
+sqlite3 "$DB" "SELECT COUNT(*), MIN(created_at) FROM motion_events;"
+sqlite3 "$SURVCAM_DIR/backend/telemetry.db" "SELECT COUNT(*), MIN(recorded_at) FROM telemetry;"
+
+# What the daily cleanup deleted
+journalctl -u survcam-backend --since yesterday --no-pager | grep -i "cleanup deleted"
+```
+
 ### Measure real stream frame rate
 
 `backend/fps_check.py` reports the average, slowest, and fastest frames per second of a stream. Run it through the backend, which already holds the camera connection:
@@ -760,6 +852,8 @@ python3 backend/fps_check.py "http://127.0.0.1:8000/live/cam001?access_token=$TO
 - **Cameras that worked for weeks start dropping off Wi-Fi:** check supply voltage under load, antenna and board temperature, and AP placement.
 - **Firmware update does nothing:** the OTA key must be the same in `.env` and in the sketch (and at least 16 characters), `SURVCAM_FIRMWARE_BASE_URL` must be a LAN URL the camera can reach, the camera must be online, and the user must be in `SURVCAM_CONTROL_USERS`.
 - **Remote access fails (Cloudflare error 530 or a timeout):** check `sudo systemctl status cloudflared` and `cloudflared tunnel list`. Make sure the ingress points to `http://localhost:8000` and test `/health` locally. The watchdog in Step 10 helps with this.
+- **Last-seen times or RSSI stop updating while streams and recordings still work:** look for `database is locked` and `MQTT message handling failed` in the journal. The backend now waits up to 30 seconds for the database and keeps processing MQTT messages after an error, so this points to a very slow disk or a long-running task (such as a manual `VACUUM` or a large delete) holding the database. Do not run large deletes on a running server; use the rebuild in [Upgrading an existing install](#upgrading-an-existing-install).
+- **Reboots & Dropouts is slow or times out:** make sure the backend has been restarted after the update (it creates a time index on first start) and that `telemetry.db` is not huge (`ls -lh backend/telemetry.db`; it holds 14 days). The app loads 50 events at a time; press **Load more** for older ones.
 - **Recordings stop:** check free disk space (`df -hT`), that the recordings disk is mounted, and `journalctl -u survcam-backend`.
 - **`401` after the secret changes:** all existing tokens become invalid when you change `SURVCAM_JWT_SECRET`. Log in again on every device.
 
@@ -768,7 +862,8 @@ python3 backend/fps_check.py "http://127.0.0.1:8000/live/cam001?access_token=$TO
 - The API is published to the internet through Cloudflare. Keep authentication on, use strong passwords, protect your Cloudflare account, and consider Cloudflare Access.
 - **No default credentials exist.** The first administrator is created with `create_admin.py`, and login always needs the Telegram code.
 - The live-stream endpoint accepts the token in the URL (`?access_token=...`) so the in-app player can use it. URLs can appear in logs and proxies, so do not paste stream URLs into chats.
-- MQTT is unauthenticated (see [Step 4](#step-4---mqtt-broker-and-firewall)). Keep it on a trusted LAN.
+- MQTT is unauthenticated (see [Step 4](#step-4---mqtt-broker-and-firewall)). Keep it on a trusted LAN. Camera heartbeats contain the camera's password, so the broker must never be reachable from the internet. The backend does not write heartbeat contents to its log.
+- Owners (`SURVCAM_CONTROL_USERS`) can manage all accounts and run any firmware on your cameras. Keep that list to the people who built and run the system.
 - Generate your own secrets for every installation: JWT secret, OTA key, Telegram token, Firebase files, and signing keys.
 - **Never commit:** `.env`, `google-services.json`, Firebase service-account files, `ota_key.txt`, signing keys, databases, recordings, APKs, or compiled firmware. The included `.gitignore` covers these, but check before every push, for example with `gitleaks detect`.
 - Report vulnerabilities privately to the repository owner rather than in a public issue.
@@ -778,7 +873,8 @@ python3 backend/fps_check.py "http://127.0.0.1:8000/live/cam001?access_token=$TO
 
 - Hardware encoding is tested on Intel VAAPI only. Other machines use the software fallback and need more CPU.
 - Camera firmware has no MQTT authentication, and the stream and setup ports are unencrypted HTTP on the LAN.
-- The recording schedule and retention are code constants.
+- The recording schedule and the retention periods are code constants.
+- The app asks for the last 7 days of reboots and dropouts (`EVENTS_HOURS` in `CameraDetailActivity.kt`); the server keeps 14 days of telemetry.
 - Streams are MJPEG at modest frame rates (about 10-12 fps at best with the current firmware, which is enough for surveillance).
 - Android is the only supported client.
 - Several project components were built for one site. Expect small rough edges when adapting them, and please open an issue or a pull request.
